@@ -94,15 +94,18 @@ namespace BootstrapperUI
                         entries.ForEach(p => writer.WriteLine(p + "\n"));
                     }
                 }
-                string setting = null;
-                try
+                if (envCheckbox.IsChecked.Value)
                 {
-                    setting = $"{new Uri(Endpoint).DnsSafeHost}:8500/v1/kv/win";
-                    Environment.SetEnvironmentVariable("CONSUL_SERVER", setting, EnvironmentVariableTarget.Machine);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Failed to set 'CONSUL_SERVER' environment variable to '{setting}'");
+                    string setting = null;
+                    try
+                    {
+                        setting = $"{new Uri(Endpoint).DnsSafeHost}:8500/v1/kv/win";
+                        Environment.SetEnvironmentVariable("CONSUL_SERVER", setting, EnvironmentVariableTarget.Machine);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to set 'CONSUL_SERVER' environment variable to '{setting}'");
+                    }
                 }
 
             }
