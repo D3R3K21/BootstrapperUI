@@ -49,6 +49,10 @@ namespace BootstrapperUI
         {
             try
             {
+                if (string.IsNullOrEmpty(filePath.Text))
+                {
+                    filePath.Text = $"./Bootstrapper-{DateTime.Now.ToLongTimeString().Replace(" ", "_").Replace("-", "_").Replace(":", ".")}";
+                }
                 if (File.Exists(filePath.Text))
                 {
                     MessageBox.Show(this, "File Already Exists");
