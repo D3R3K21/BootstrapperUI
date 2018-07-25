@@ -33,7 +33,7 @@ namespace BootstrapperUI
         public MainWindow()
         {
             var defaultServices = new List<string> { "Allocation", "Authorization", "Campaigns", "Contracts", "Dedupe", "Email", "Entites", "Forms",
-                "HttpRaw", "Integrations", "Kickfire", "Marketo", "MarketPlace", "Notifications", "Organizations", "Partners", "Payout", "Performance",
+                "HttpRaw", "Identity", "Integrations", "Kickfire", "Marketo", "MarketPlace", "Notifications", "Organizations", "Partners", "Payout", "Performance",
                 "Proofs", "Reports", "Rules", "SalesForce", "Silverpop", "Users", "ValueLists", "Logs-Integrations", "Synthio", "Tags" }.OrderBy(p => p);
 
             InitializeComponent();
@@ -49,19 +49,24 @@ namespace BootstrapperUI
         {
             try
             {
-                if (string.IsNullOrEmpty(filePath.Text))
+                var writeToFile = !string.IsNullOrEmpty(filePath.Text);
+                //if (string.IsNullOrEmpty(filePath.Text))
+                //{
+                //    filePath.Text = $"./Bootstrapper-{DateTime.Now.ToLongTimeString().Replace(" ", "_").Replace("-", "_").Replace(":", ".")}";
+                //}
+                if (writeToFile)
                 {
-                    filePath.Text = $"./Bootstrapper-{DateTime.Now.ToLongTimeString().Replace(" ", "_").Replace("-", "_").Replace(":", ".")}";
+                    if (File.Exists(filePath.Text))
+                    {
+                        MessageBox.Show(this, "File Already Exists");
+                    }
+                    var directoryName = System.IO.Path.GetDirectoryName(filePath.Text);
+                    if (!Directory.Exists(directoryName))
+                    {
+                        MessageBox.Show(this, $"Path Does Not Exist : {directoryName}");
+                    }
                 }
-                if (File.Exists(filePath.Text))
-                {
-                    MessageBox.Show(this, "File Already Exists");
-                }
-                var directoryName = System.IO.Path.GetDirectoryName(filePath.Text);
-                if (!Directory.Exists(directoryName))
-                {
-                    MessageBox.Show(this, $"Path Does Not Exist : {directoryName}");
-                }
+
                 var uriText = uri.Text;
                 var selectedServices = services.SelectedItems;
                 var entries = new List<string>();
@@ -86,14 +91,21 @@ namespace BootstrapperUI
                                 $"return new ServiceDefinition<{selectedService}Service.{selectedService}ServiceClient>( new {selectedService}Service.{selectedService}ServiceClient(channel), channel); \n}});";
                     entries.Add(entry);
                 }
-
-                using (var stream = File.Create(filePath.Text))
+                if (writeToFile)
                 {
-                    using (var writer = new StreamWriter(stream))
+                    using (var stream = File.Create(filePath.Text))
                     {
-                        entries.ForEach(p => writer.WriteLine(p + "\n"));
+                        using (var writer = new StreamWriter(stream))
+                        {
+                            entries.ForEach(p => writer.WriteLine(p + "\n"));
+                        }
                     }
                 }
+                else
+                {
+                    textBox.Text = string.Join("\n", entries);
+                }
+
                 if (envCheckbox.IsChecked.Value)
                 {
                     string setting = null;
