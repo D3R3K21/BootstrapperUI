@@ -32,9 +32,9 @@ namespace BootstrapperUI
 
         public MainWindow()
         {
-            var defaultServices = new List<string> { "Allocation", "Authorization", "Campaigns", "Contracts", "Dedupe", "Email", "Entites", "Forms",
+            var defaultServices = new List<string> { "Allocation", "Authorization", "Campaigns", "Contracts", "Dedupe", "Email", "Entities", "Forms",
                 "HttpRaw", "Identity", "Integrations", "Kickfire", "Marketo", "MarketPlace", "Notifications", "Organizations", "Partners", "Payout", "Performance",
-                "Proofs", "Reports", "Rules", "SalesForce", "Silverpop", "Users", "ValueLists", "Logs-Integrations", "Synthio", "Tags" }.OrderBy(p => p);
+                "Proofs", "Reports", "Rules", "SalesForce", "Silverpop", "Users", "ValueList", "Logs-Integrations", "Synthio", "Tags" }.OrderBy(p => p);
 
             InitializeComponent();
             services.SelectionMode = SelectionMode.Multiple;
@@ -50,10 +50,6 @@ namespace BootstrapperUI
             try
             {
                 var writeToFile = !string.IsNullOrEmpty(filePath.Text);
-                //if (string.IsNullOrEmpty(filePath.Text))
-                //{
-                //    filePath.Text = $"./Bootstrapper-{DateTime.Now.ToLongTimeString().Replace(" ", "_").Replace("-", "_").Replace(":", ".")}";
-                //}
                 if (writeToFile)
                 {
                     if (File.Exists(filePath.Text))
@@ -76,10 +72,16 @@ namespace BootstrapperUI
                 var getResponse = client.Get<List<ConsulNode>>();
                 Node = getResponse.SingleOrDefault()?.Node;
                 RefreshServices(Endpoint);
+                var notFound = new List<string>();
                 foreach (var x in selectedServices)
                 {
                     var ser = (string)x;
                     var serviceDefinition = ConsulServices.FirstOrDefault(p => p.Key.ToLowerInvariant().Contains(ser.ToLowerInvariant()) && p.Key.Contains("50051"));
+                    if (string.IsNullOrEmpty(serviceDefinition.Key))
+                    {
+                        notFound.Add(ser);
+                        continue;
+                    }
                     string selectedService;
                     if (!MappedServiceNames.TryGetValue(ser, out selectedService))
                     {
@@ -90,6 +92,10 @@ namespace BootstrapperUI
                                 $"var channel = new Channel(\"{_ep}\", {serviceDefinition.Value.Port}, ChannelCredentials.Insecure);\n\t" +
                                 $"return new ServiceDefinition<{selectedService}Service.{selectedService}ServiceClient>( new {selectedService}Service.{selectedService}ServiceClient(channel), channel); \n}});";
                     entries.Add(entry);
+                }
+                if (notFound.Any())
+                {
+                    MessageBox.Show($"Failed find the following services in consul: {string.Join(", ", notFound)}");
                 }
                 if (writeToFile)
                 {
