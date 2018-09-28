@@ -14,11 +14,10 @@
         <TextBox x:Name="uri" HorizontalAlignment="Left" Height="23" Margin="10,53,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120"/>
         <Button x:Name="save" Content="Save" HorizontalAlignment="Left" Margin="119,108,0,0" VerticalAlignment="Top" Width="75" Click="button_Click" RenderTransformOrigin="1.247,1.452" Grid.ColumnSpan="2"/>
         <ListBox x:Name="services" HorizontalAlignment="Left" Height="213" Margin="10,133,0,0" VerticalAlignment="Top" Width="295" Grid.ColumnSpan="2"/>
-        <TextBox x:Name="filePath" HorizontalAlignment="Left" Height="23" Margin="13.346,53,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="120" Grid.Column="1"/>
         <Label x:Name="label" Content="URI" HorizontalAlignment="Left" Margin="10,22,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,0.42" Width="120"/>
-        <Label x:Name="label1" Content="File Path" Grid.Column="1" HorizontalAlignment="Left" Margin="13,22,0,0" VerticalAlignment="Top" Width="120"/>
         <CheckBox x:Name="envCheckbox" Content="Set Env Variable" HorizontalAlignment="Left" Margin="10,81,0,0" VerticalAlignment="Top"/>
         <TextBox x:Name="textBox" Grid.Column="1" HorizontalAlignment="Left" Height="213" Margin="13,133,0,0" TextWrapping="NoWrap" VerticalAlignment="Top" Width="363" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        <ComboBox x:Name="comboBox" Grid.Column="1" HorizontalAlignment="Left" Margin="13,54,0,0" VerticalAlignment="Top" Width="190" SelectionChanged="comboBox_SelectionChanged"/>
 
     </Grid>
 </Window>

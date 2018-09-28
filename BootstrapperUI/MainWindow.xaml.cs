@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -29,12 +30,19 @@ namespace BootstrapperUI
         private static string Node { get; set; }
         private static string _ep;
         private static string Endpoint => $"http://{_ep}:8500/v1/catalog/node/{Node}";
+        private static Dictionary<string, List<string>> preloadedTemplates = new Dictionary<string, List<string>>
+            {
+                { "Custom Integrations", new List<string> { "Campaigns", "Contracts", "Organizations", "Entities", "ValueList" } },
+                { "Synthio", new List<string> { "Contracts", "ValueList" } },
+                { "Contracts", new List<string> { "Kickfire", "Rules", "ValueList", "Identity", "Allocation", "Integrations", "Notifications", "Users", "Email", "Campaigns", "Organizations", "Silverpop", "Synthio", "Agreements" } }
+            };
 
         public MainWindow()
         {
             var defaultServices = new List<string> { "Allocation", "Authorization", "Campaigns", "Contracts", "Dedupe", "Email", "Entities", "Forms",
                 "HttpRaw", "Identity", "Integrations", "Kickfire", "Marketo", "MarketPlace", "Notifications", "Organizations", "Partners", "Payout", "Performance",
                 "Proofs", "Reports", "Rules", "SalesForce", "Silverpop", "Users", "ValueList", "Logs-Integrations", "Synthio", "Tags" }.OrderBy(p => p);
+
 
             InitializeComponent();
             services.SelectionMode = SelectionMode.Multiple;
@@ -43,89 +51,76 @@ namespace BootstrapperUI
                 services.Items.Add(service);
             }
 
+            foreach (var template in preloadedTemplates)
+            {
+                comboBox.Items.Add(template.Key);
+            }
+        }
+
+        private void GenerateServiceDefinitions(List<string> selectedServices)
+        {
+            var uriText = uri.Text;
+            var entries = new List<string>();
+            Console.Out.WriteLine("Enter Environment Prefix");
+            _ep = $"{uriText}.integrate.team";
+            var client = new HttpClient($"http://{_ep}:8500/v1/catalog/nodes");
+            var getResponse = client.Get<List<ConsulNode>>();
+            Node = getResponse.SingleOrDefault()?.Node;
+            RefreshServices(Endpoint);
+            var notFound = new List<string>();
+            foreach (var x in selectedServices)
+            {
+                var ser = (string)x;
+                var serviceDefinition = ConsulServices.FirstOrDefault(p => p.Key.ToLowerInvariant().Contains(ser.ToLowerInvariant()) && p.Key.Contains("50051"));
+                if (string.IsNullOrEmpty(serviceDefinition.Key))
+                {
+                    notFound.Add(ser);
+                    continue;
+                }
+                string selectedService;
+                if (!MappedServiceNames.TryGetValue(ser, out selectedService))
+                {
+                    selectedService = ser;
+                }
+
+                var entry = "ServiceFactory.Define(() => \n{\n\t" +
+                            $"var channel = new Channel(\"{_ep}\", {serviceDefinition.Value.Port}, ChannelCredentials.Insecure);\n\t" +
+                            $"return new ServiceDefinition<{selectedService}Service.{selectedService}ServiceClient>( new {selectedService}Service.{selectedService}ServiceClient(channel), channel); \n}});";
+                entries.Add(entry);
+            }
+            if (notFound.Any())
+            {
+                MessageBox.Show($"Failed find the following services in consul: {string.Join(", ", notFound)}");
+            }
+            textBox.Text = string.Join("\n", entries);
+
+
+            if (envCheckbox.IsChecked.Value)
+            {
+                string setting = null;
+                try
+                {
+                    setting = $"{new Uri(Endpoint).DnsSafeHost}:8500/v1/kv/win";
+                    Environment.SetEnvironmentVariable("CONSUL_SERVER", setting, EnvironmentVariableTarget.Machine);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to set 'CONSUL_SERVER' environment variable to '{setting}'");
+                }
+            }
+            services.SelectedIndex = -1;
         }
 
         private void button_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                var writeToFile = !string.IsNullOrEmpty(filePath.Text);
-                if (writeToFile)
+                var selectedServices = new List<string>();
+                foreach (var item in services.SelectedItems)
                 {
-                    if (File.Exists(filePath.Text))
-                    {
-                        MessageBox.Show(this, "File Already Exists");
-                    }
-                    var directoryName = System.IO.Path.GetDirectoryName(filePath.Text);
-                    if (!Directory.Exists(directoryName))
-                    {
-                        MessageBox.Show(this, $"Path Does Not Exist : {directoryName}");
-                    }
+                    selectedServices.Add((string)item);
                 }
-
-                var uriText = uri.Text;
-                var selectedServices = services.SelectedItems;
-                var entries = new List<string>();
-                Console.Out.WriteLine("Enter Environment Prefix");
-                _ep = $"release-{uriText}.integrate.team";
-                var client = new HttpClient($"http://{_ep}:8500/v1/catalog/nodes");
-                var getResponse = client.Get<List<ConsulNode>>();
-                Node = getResponse.SingleOrDefault()?.Node;
-                RefreshServices(Endpoint);
-                var notFound = new List<string>();
-                foreach (var x in selectedServices)
-                {
-                    var ser = (string)x;
-                    var serviceDefinition = ConsulServices.FirstOrDefault(p => p.Key.ToLowerInvariant().Contains(ser.ToLowerInvariant()) && p.Key.Contains("50051"));
-                    if (string.IsNullOrEmpty(serviceDefinition.Key))
-                    {
-                        notFound.Add(ser);
-                        continue;
-                    }
-                    string selectedService;
-                    if (!MappedServiceNames.TryGetValue(ser, out selectedService))
-                    {
-                        selectedService = ser;
-                    }
-
-                    var entry = "ServiceFactory.Define(() => \n{\n\t" +
-                                $"var channel = new Channel(\"{_ep}\", {serviceDefinition.Value.Port}, ChannelCredentials.Insecure);\n\t" +
-                                $"return new ServiceDefinition<{selectedService}Service.{selectedService}ServiceClient>( new {selectedService}Service.{selectedService}ServiceClient(channel), channel); \n}});";
-                    entries.Add(entry);
-                }
-                if (notFound.Any())
-                {
-                    MessageBox.Show($"Failed find the following services in consul: {string.Join(", ", notFound)}");
-                }
-                if (writeToFile)
-                {
-                    using (var stream = File.Create(filePath.Text))
-                    {
-                        using (var writer = new StreamWriter(stream))
-                        {
-                            entries.ForEach(p => writer.WriteLine(p + "\n"));
-                        }
-                    }
-                }
-                else
-                {
-                    textBox.Text = string.Join("\n", entries);
-                }
-
-                if (envCheckbox.IsChecked.Value)
-                {
-                    string setting = null;
-                    try
-                    {
-                        setting = $"{new Uri(Endpoint).DnsSafeHost}:8500/v1/kv/win";
-                        Environment.SetEnvironmentVariable("CONSUL_SERVER", setting, EnvironmentVariableTarget.Machine);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show($"Failed to set 'CONSUL_SERVER' environment variable to '{setting}'");
-                    }
-                }
-
+                GenerateServiceDefinitions(selectedServices);
             }
             catch (Exception ex)
             {
@@ -150,6 +145,12 @@ namespace BootstrapperUI
                     ConsulServices.Add(key, g.Value);
             }
             Console.Out.WriteLine($"{ConsulServices.Count} Services Loaded From : {endpoint}");
+        }
+
+        private void comboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            var items = preloadedTemplates[(string)comboBox.SelectedItem];
+            GenerateServiceDefinitions(items);
         }
     }
 }
