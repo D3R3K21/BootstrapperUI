@@ -30,12 +30,30 @@ namespace BootstrapperUI
         private static string Node { get; set; }
         private static string _ep;
         private static string Endpoint => $"http://{_ep}:8500/v1/catalog/node/{Node}";
-        private static Dictionary<string, List<string>> preloadedTemplates = new Dictionary<string, List<string>>
+
+        private static Dictionary<string, List<string>> preloadedTemplates = new Dictionary<string, List<string>>();
+        //= new Dictionary<string, List<string>>
+        //{
+        //    { "Custom Integrations", new List<string> { "Campaigns", "Contracts", "Organizations", "Entities", "ValueList" } },
+        //    { "SalesForce", new List<string> { "Campaigns", "Contracts", "Organizations", "Entities", "ValueList" } },
+        //    { "Rules", new List<string> { "Dedupe", "Contracts", "Organizations", "Entities", "ValueList", "Allocation", "Integrations", } },
+        //    { "Synthio", new List<string> { "Contracts", "ValueList" } },
+        //    { "LinkedIn", new List<string> { "Contracts", "ValueList", "Users","Schedule", "Campaigns" } },
+        //    { "Contracts", new List<string> { "Kickfire", "Rules", "ValueList", "Identity", "Allocation", "Integrations", "Notifications", "Users", "Email", "Campaigns", "Organizations", "Silverpop", "Synthio", "Agreements" } },
+        //    { "Entities", new List<string> { "Allocation", "Integrations", "Dedupe", "Contracts", "Performance", "Organizations", "Rules", "Notifications", "Reports", "Payout"} }
+        //};
+
+        static MainWindow()
+        {
+            var servicesTemplate = File.ReadAllText("./services.txt");
+            var lines = servicesTemplate.Split(';');
+            foreach (var line in lines)
             {
-                { "Custom Integrations", new List<string> { "Campaigns", "Contracts", "Organizations", "Entities", "ValueList" } },
-                { "Synthio", new List<string> { "Contracts", "ValueList" } },
-                { "Contracts", new List<string> { "Kickfire", "Rules", "ValueList", "Identity", "Allocation", "Integrations", "Notifications", "Users", "Email", "Campaigns", "Organizations", "Silverpop", "Synthio", "Agreements" } }
-            };
+                if (string.IsNullOrEmpty(line) || line.Length < 3 || line.Substring(0, 2) == "//") continue;
+                var kvp = line.Split(':');
+                preloadedTemplates.Add(kvp.First().Trim(), kvp.Last().Split(',').Select(p => p.Trim()).ToList());
+            }
+        }
 
         public MainWindow()
         {

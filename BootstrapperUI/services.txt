@@ -1,0 +1,8 @@
+//serviceName (colon) coma delimited values for grpc services (semi colon);
+LinkedIn:Contracts, ValueList, Users,Schedule, Campaigns;
+Contracts:Kickfire, Rules, ValueList, Identity, Allocation, Integrations, Notifications, Users, Email, Campaigns, Organizations, Silverpop, Synthio, Agreements;
+Entities:Allocation, Integrations, Dedupe, Contracts, Performance, Organizations, Rules, Notifications, Reports, Payout;
+Synthio:Contracts, ValueList;
+Rules:Dedupe, Contracts, Organizations, Entities, ValueList, Allocation, Integrations;
+SalesForce: Campaigns, Contracts, Organizations, Entities, ValueList;
+Custom Integrations:Campaigns, Contracts, Organizations, Entities, ValueList;
